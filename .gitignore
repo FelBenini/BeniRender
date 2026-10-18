@@ -1,0 +1,21 @@
+# OpenTofu / Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+
+# Local configuration may contain personal IPs or secrets
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+
+# SSH private keys
+*.pem
+*.key
+**/blender-renderfarm
+**/blender-renderfarm.pub
+
+# Ansible
+ansible/**/vault-password-file

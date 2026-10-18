@@ -1,0 +1,2 @@
+# Copy to terraform.tfvars and replace with your public IPv4 address.
+my_ip_cidr = "192.168.0.200/32"
