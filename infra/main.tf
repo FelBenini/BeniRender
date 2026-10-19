@@ -92,6 +92,7 @@ resource "aws_instance" "render_worker" {
   vpc_security_group_ids      = [aws_security_group.render_worker.id]
   key_name                    = aws_key_pair.render_worker.key_name
   associate_public_ip_address = true
+  iam_instance_profile        = aws_iam_instance_profile.render_worker.name
 
   root_block_device {
     volume_size           = 20

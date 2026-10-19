@@ -1,0 +1,74 @@
+---
+- name: Render a Blender scene on BeniRender
+  hosts: render_workers
+  gather_facts: false
+
+  vars:
+    render_jobs_dir: /srv/benirender/jobs
+    render_output_root: /srv/benirender/output
+    blender_binary: /usr/local/bin/blender
+
+  tasks:
+    - name: Validate required render variables
+      ansible.builtin.assert:
+        that:
+          - scene_path is defined
+          - scene_filename is defined
+          - render_job_id is defined
+          - render_timeout is defined
+          - render_poll_interval is defined
+        fail_msg: "Missing required render variables."
+
+    - name: Create remote job directory
+      ansible.builtin.file:
+        path: "{{ render_output_root }}/{{ render_job_id }}"
+        state: directory
+        owner: ec2-user
+        group: ec2-user
+        mode: "0755"
+      become: true
+
+    - name: Create remote scene directory
+      ansible.builtin.file:
+        path: "{{ render_jobs_dir }}"
+        state: directory
+        owner: ec2-user
+        group: ec2-user
+        mode: "0755"
+      become: true
+
+    - name: Upload Blender scene
+      ansible.builtin.copy:
+        src: "{{ scene_path }}"
+        dest: "{{ render_jobs_dir }}/{{ scene_filename }}"
+        owner: ec2-user
+        group: ec2-user
+        mode: "0644"
+      become: true
+
+    - name: Start Blender animation render asynchronously
+      ansible.builtin.command:
+        argv:
+          - "{{ blender_binary }}"
+          - --background
+          - "{{ render_jobs_dir }}/{{ scene_filename }}"
+          - --render-output
+          - "{{ render_output_root }}/{{ render_job_id }}/frame_"
+          - --render-format
+          - PNG
+          - --render-frame
+          - "1"
+      become: true
+      become_user: ec2-user
+      async: "{{ render_timeout }}"
+      poll: 0
+      register: render_job
+
+    - name: Wait for Blender render to finish
+      ansible.builtin.async_status:
+        jid: "{{ render_job.ansible_job_id }}"
+      register: render_result
+      until: render_result.finished | default(false) | bool
+      retries: "{{ (render_timeout | int // render_poll_interval | int) + 1 }}"
+      delay: "{{ render_poll_interval }}"
+
