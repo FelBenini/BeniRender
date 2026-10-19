@@ -1,0 +1,74 @@
+---
+- name: Configure BeniRender workers
+  hosts: render_workers
+  become: true
+  gather_facts: true
+
+  vars:
+    blender_version: "5.2.2"
+    blender_archive: "blender-{{ blender_version }}-linux-x64.tar.xz"
+    blender_url: "https://mirror.blender.org/release/Blender5.2/{{ blender_archive }}"
+    blender_checksum: "84098912789dc450e95697c4184fb8a90acbe5111c2ba4aede3fecb57806a168"
+    blender_install_dir: "/opt/blender-{{ blender_version }}-linux-x64"
+
+  tasks:
+    - name: Install Blender runtime dependencies
+      ansible.builtin.dnf:
+        name:
+          - tar
+          - xz
+          - libX11
+          - libXrender
+          - libXfixes
+          - libXi
+          - libXxf86vm
+          - libXcursor
+          - libXinerama
+          - libXrandr
+          - mesa-libGL
+          - libSM
+          - libICE
+          - libxkbcommon
+        state: present
+
+    - name: Download official Blender archive
+      ansible.builtin.get_url:
+        url: "{{ blender_url }}"
+        dest: "/tmp/{{ blender_archive }}"
+        checksum: "sha256:{{ blender_checksum }}"
+        mode: "0644"
+
+    - name: Extract Blender
+      ansible.builtin.unarchive:
+        src: "/tmp/{{ blender_archive }}"
+        dest: /opt
+        remote_src: true
+        creates: "{{ blender_install_dir }}/blender"
+
+    - name: Create Blender command symlink
+      ansible.builtin.file:
+        src: "{{ blender_install_dir }}/blender"
+        dest: /usr/local/bin/blender
+        state: link
+
+    - name: Create render job directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: ec2-user
+        group: ec2-user
+        mode: "0755"
+      loop:
+        - /srv/benirender/jobs
+        - /srv/benirender/output
+
+    - name: Verify Blender version
+      ansible.builtin.command:
+        cmd: /usr/local/bin/blender --version
+      register: blender_version_result
+      changed_when: false
+
+    - name: Display Blender version
+      ansible.builtin.debug:
+        var: blender_version_result.stdout_lines
+
