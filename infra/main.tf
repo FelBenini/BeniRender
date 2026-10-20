@@ -93,6 +93,7 @@ resource "aws_instance" "render_worker" {
   key_name                    = aws_key_pair.render_worker.key_name
   associate_public_ip_address = true
   iam_instance_profile        = aws_iam_instance_profile.render_worker.name
+  count                       = var.worker_count
 
   root_block_device {
     volume_size           = 20
