@@ -72,3 +72,46 @@
       retries: "{{ (render_timeout | int // render_poll_interval | int) + 1 }}"
       delay: "{{ render_poll_interval }}"
 
+
+    - name: List remote render output directory
+      ansible.builtin.command:
+        argv:
+          - find
+          - "{{ render_output_root }}/{{ render_job_id }}"
+          - -maxdepth
+          - "2"
+          - -type
+          - f
+          - -printf
+          - "%p (%s bytes)\n"
+      register: remote_output_listing
+      changed_when: false
+      become: true
+
+    - name: Show remote render files
+      ansible.builtin.debug:
+        var: remote_output_listing.stdout_lines
+
+    - name: Find rendered files
+      ansible.builtin.find:
+        paths: "{{ render_output_root }}/{{ render_job_id }}"
+        recurse: true
+        file_type: file
+      register: rendered_files
+      become: true
+
+    - name: Ensure rendering produced output
+      ansible.builtin.assert:
+        that:
+          - rendered_files.matched | int > 0
+        fail_msg: >-
+          No files found in {{ render_output_root }}/{{ render_job_id }}.
+          Check the remote output listing above and Blender's log.
+
+    - name: Download rendered files to the controller
+      ansible.builtin.fetch:
+        src: "{{ item.path }}"
+        dest: "{{ local_output_dir }}/"
+        flat: true
+      loop: "{{ rendered_files.files }}"
+      become: true

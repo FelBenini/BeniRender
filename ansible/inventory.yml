@@ -3,10 +3,10 @@ all:
     render_workers:
       hosts:
         worker01:
-          ansible_host: 54.83.178.185
+          ansible_host: 192.168.2.228
           ansible_user: ec2-user
-          ansible_ssh_private_key_file: "/home/fbenini-/.ssh/benirender-worker"
+          ansible_ssh_private_key_file: "/home/felipe/.ssh/benirender-worker"
           ansible_ssh_common_args: >-
-            -o HostKeyAlias=benirender-i-03a4e81c3d0c459f1
+            -o HostKeyAlias=benirender-i-0c2048c9699ad4d3b
             -o StrictHostKeyChecking=yes
-            -o UserKnownHostsFile=/home/fbenini-/.ssh/known_hosts
+            -o UserKnownHostsFile=/home/felipe/.ssh/known_hosts
