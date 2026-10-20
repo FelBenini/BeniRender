@@ -1,0 +1,83 @@
+---
+- name: Render one frame on a BeniRender worker
+  hosts: render_workers
+  gather_facts: false
+
+  vars:
+    render_jobs_root: /srv/benirender/jobs
+    render_output_root: /srv/benirender/output
+    blender_binary: /usr/local/bin/blender
+
+  tasks:
+    - name: Validate required frame variables
+      ansible.builtin.assert:
+        that:
+          - render_job_id is defined
+          - scene_filename is defined
+          - frame_number is defined
+          - render_timeout is defined
+          - render_poll_interval is defined
+          - frame_number | int >= 1
+          - render_timeout | int >= 1
+          - render_poll_interval | int >= 1
+        fail_msg: "Missing or invalid frame-render variables."
+
+    - name: Check that the scene was prepared
+      ansible.builtin.stat:
+        path: "{{ render_jobs_root }}/{{ render_job_id }}/{{ scene_filename }}"
+      register: scene_file
+      become: true
+
+    - name: Ensure scene exists on worker
+      ansible.builtin.assert:
+        that:
+          - scene_file.stat.exists | default(false)
+          - scene_file.stat.isreg | default(false)
+        fail_msg: >-
+          Scene is missing on {{ inventory_hostname }}.
+          Run ansible/prepare_render.yml before rendering frames.
+
+    - name: Start Blender for frame {{ frame_number }}
+      ansible.builtin.command:
+        argv:
+          - "{{ blender_binary }}"
+          - --background
+          - "{{ render_jobs_root }}/{{ render_job_id }}/{{ scene_filename }}"
+          - --render-output
+          - "{{ render_output_root }}/{{ render_job_id }}/frame_"
+          - --render-format
+          - PNG
+          - --render-frame
+          - "{{ frame_number | string }}"
+      become: true
+      become_user: ec2-user
+      async: "{{ render_timeout }}"
+      poll: 0
+      register: blender_job
+
+    - name: Wait for frame {{ frame_number }} to finish
+      ansible.builtin.async_status:
+        jid: "{{ blender_job.ansible_job_id }}"
+      register: blender_result
+      until: blender_result.finished | default(false) | bool
+      retries: "{{ (render_timeout | int // render_poll_interval | int) + 1 }}"
+      delay: "{{ render_poll_interval }}"
+      become: true
+      become_user: ec2-user
+
+    - name: Verify expected frame exists
+      ansible.builtin.stat:
+        path: >-
+          {{ render_output_root }}/{{ render_job_id }}/frame_{{ '%04d' | format(frame_number | int) }}.png
+      register: frame_file
+      become: true
+
+    - name: Ensure frame was rendered
+      ansible.builtin.assert:
+        that:
+          - frame_file.stat.exists | default(false)
+          - frame_file.stat.isreg | default(false)
+          - frame_file.stat.size | default(0) | int > 0
+        fail_msg: >-
+          Blender did not produce the expected frame
+          {{ frame_number }} on {{ inventory_hostname }}.

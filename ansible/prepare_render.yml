@@ -1,0 +1,62 @@
+---
+- name: Prepare a Blender render job on all BeniRender workers
+  hosts: render_workers
+  gather_facts: false
+
+  vars:
+    render_jobs_root: /srv/benirender/jobs
+    render_output_root: /srv/benirender/output
+
+  tasks:
+    - name: Validate required preparation variables
+      ansible.builtin.assert:
+        that:
+          - scene_path is defined
+          - scene_filename is defined
+          - render_job_id is defined
+        fail_msg: "Missing required render preparation variables."
+
+    - name: Create remote job directory
+      ansible.builtin.file:
+        path: "{{ render_jobs_root }}/{{ render_job_id }}"
+        state: directory
+        owner: ec2-user
+        group: ec2-user
+        mode: "0755"
+      become: true
+
+    - name: Create remote output directory
+      ansible.builtin.file:
+        path: "{{ render_output_root }}/{{ render_job_id }}"
+        state: directory
+        owner: ec2-user
+        group: ec2-user
+        mode: "0755"
+      become: true
+
+    - name: Upload Blender scene once to this worker
+      ansible.builtin.copy:
+        src: "{{ scene_path }}"
+        dest: "{{ render_jobs_root }}/{{ render_job_id }}/{{ scene_filename }}"
+        owner: ec2-user
+        group: ec2-user
+        mode: "0644"
+      become: true
+
+    - name: Verify uploaded Blender scene
+      ansible.builtin.stat:
+        path: "{{ render_jobs_root }}/{{ render_job_id }}/{{ scene_filename }}"
+      register: uploaded_scene
+      become: true
+
+    - name: Ensure scene upload succeeded
+      ansible.builtin.assert:
+        that:
+          - uploaded_scene.stat.exists
+          - uploaded_scene.stat.isreg
+          - uploaded_scene.stat.size | int > 0
+        fail_msg: "Scene upload verification failed on {{ inventory_hostname }}."
+
+    - name: Report prepared worker
+      ansible.builtin.debug:
+        msg: "Render job {{ render_job_id }} is prepared on {{ inventory_hostname }}."

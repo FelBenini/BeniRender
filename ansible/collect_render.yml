@@ -1,0 +1,32 @@
+---
+- name: Collect rendered frames from BeniRender workers
+  hosts: render_workers
+  gather_facts: false
+
+  vars:
+    render_output_root: /srv/benirender/output
+
+  tasks:
+    - name: Find rendered PNG frames for this job
+      ansible.builtin.find:
+        paths: "{{ render_output_root }}/{{ render_job_id }}"
+        patterns:
+          - "frame_*.png"
+        recurse: false
+        file_type: file
+      register: rendered_frames
+      become: true
+
+    - name: Download rendered frames to the controller
+      ansible.builtin.fetch:
+        src: "{{ item.path }}"
+        dest: "{{ local_output_dir }}/"
+        flat: true
+      loop: "{{ rendered_frames.files }}"
+      become: true
+
+    - name: Report frames found on this worker
+      ansible.builtin.debug:
+        msg: >-
+          {{ inventory_hostname }} supplied
+          {{ rendered_frames.matched }} frame file(s).
