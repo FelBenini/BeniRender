@@ -12,6 +12,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 INVENTORY = ROOT / "ansible" / "inventory.yml"
 
+def run_command(command: list[str]) -> int:
+    """Run a command and return its exit code."""
+    return subprocess.run(command, check=False).returncode
 
 def run(command: list[str], *, timeout: int | None = None) -> str:
     """Run a command with live output; raise if it fails."""

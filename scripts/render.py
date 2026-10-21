@@ -13,8 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from queue import Empty, Queue
 
-from tools import INVENTORY, ROOT
-
+from tools import INVENTORY, ROOT, run_command
 
 PREPARE_PLAYBOOK = ROOT / "ansible" / "prepare_render.yml"
 FRAME_PLAYBOOK = ROOT / "ansible" / "render_frame.yml"
@@ -27,11 +26,6 @@ def log(message: str) -> None:
     """Print a complete message safely from multiple threads."""
     with print_lock:
         print(message, flush=True)
-
-
-def run_command(command: list[str]) -> int:
-    """Run a command and return its exit code."""
-    return subprocess.run(command, check=False).returncode
 
 
 def run_playbook(
