@@ -7,17 +7,16 @@ from __future__ import annotations
 import argparse
 import json
 import shlex
-import shutil
 import subprocess
 import sys
 import time
 from ipaddress import ip_address
 from pathlib import Path
 
+from tools import ROOT, INVENTORY, capture, require_executables, run
 
-ROOT = Path(__file__).resolve().parents[1]
+
 INFRA = ROOT / "infra"
-INVENTORY = ROOT / "ansible" / "inventory.yml"
 PLAYBOOK = ROOT / "ansible" / "site.yml"
 
 AWS_PROFILE = "renderfarm"
@@ -31,54 +30,6 @@ MAX_WORKERS = 20
 SSM_WAIT_SECONDS = 300
 COMMAND_WAIT_SECONDS = 120
 SSH_SCAN_TIMEOUT_SECONDS = 15
-
-
-def run(command: list[str], *, timeout: int | None = None) -> str:
-    """Run a command with live output; raise if it fails."""
-    print(f"\n$ {shlex.join(command)}", flush=True)
-
-    result = subprocess.run(
-        command,
-        text=True,
-        stdout=None,
-        stderr=None,
-        timeout=timeout,
-        check=False,
-    )
-
-    if result.returncode != 0:
-        raise RuntimeError(
-            f"Command failed with exit code {result.returncode}: "
-            f"{command[0]}"
-        )
-
-    return ""
-
-
-def capture(command: list[str], *, timeout: int | None = None) -> str:
-    """Run a command and return its captured stdout."""
-    print(f"\n$ {shlex.join(command)}", flush=True)
-
-    result = subprocess.run(
-        command,
-        text=True,
-        capture_output=True,
-        timeout=timeout,
-        check=False,
-    )
-
-    if result.returncode != 0:
-        if result.stdout:
-            print(result.stdout, file=sys.stderr)
-        if result.stderr:
-            print(result.stderr, file=sys.stderr)
-
-        raise RuntimeError(
-            f"Command failed with exit code {result.returncode}: "
-            f"{command[0]}"
-        )
-
-    return result.stdout.strip()
 
 
 def aws_json(*args: str) -> dict:
@@ -440,17 +391,13 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
 
-    for executable in (
+    require_executables(
         "tofu",
         "aws",
         "ansible-playbook",
         "ssh-keyscan",
         "ssh-keygen",
-    ):
-        if not shutil.which(executable):
-            raise RuntimeError(
-                f"Required executable not found: {executable}"
-            )
+    )
 
     if not SSH_KEY.is_file():
         raise RuntimeError(f"SSH private key not found: {SSH_KEY}")

@@ -13,9 +13,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from queue import Empty, Queue
 
+from tools import INVENTORY, ROOT
 
-ROOT = Path(__file__).resolve().parents[1]
-INVENTORY = ROOT / "ansible" / "inventory.yml"
+
 PREPARE_PLAYBOOK = ROOT / "ansible" / "prepare_render.yml"
 FRAME_PLAYBOOK = ROOT / "ansible" / "render_frame.yml"
 COLLECT_PLAYBOOK = ROOT / "ansible" / "collect_render.yml"

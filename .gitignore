@@ -19,3 +19,6 @@ crash.*.log
 
 # Ansible
 ansible/**/vault-password-file
+
+# Python scripts
+__pycache__
