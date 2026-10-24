@@ -87,7 +87,7 @@ resource "aws_key_pair" "render_worker" {
 # First CPU render worker
 resource "aws_instance" "render_worker" {
   ami                         = data.aws_ami.al2023.id
-  instance_type               = "t3.large"
+  instance_type               = var.instance_type
   subnet_id                   = data.aws_subnets.default.ids[0]
   vpc_security_group_ids      = [aws_security_group.render_worker.id]
   key_name                    = aws_key_pair.render_worker.key_name

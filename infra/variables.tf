@@ -23,3 +23,9 @@ variable "worker_count" {
     error_message = "worker_count must be a whole number between 1 and 20."
   }
 }
+
+variable "instance_type" {
+  description = "Instance type of EC2 render workers to provision"
+  type        = string
+  default     = "t3.large"
+}

@@ -378,6 +378,12 @@ def parse_args() -> argparse.Namespace:
         ),
     )
 
+    parser.add_argument(
+        "--instance-type",
+        default="t3.large",
+        help=f"Instance type of EC2 workers; default: t3.large",
+    )
+
     args = parser.parse_args()
 
     if not MIN_WORKERS <= args.workers <= MAX_WORKERS:
@@ -415,6 +421,7 @@ def main() -> None:
         "apply",
         "-auto-approve",
         f"-var=worker_count={args.workers}",
+        f"-var=instance_type={args.instance_type}",
     ])
 
     # These names must match infra/outputs.tf.
