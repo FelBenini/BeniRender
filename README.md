@@ -46,6 +46,14 @@ Verify your credentials:
 aws sts get-caller-identity
 ```
 
+#### Alternative method (not recommended)
+
+You can also sign in directly with the aws cli, with the following command:
+
+```bash
+aws login --profile renderfarm
+```
+
 ### 2. Configure infrastructure
 
 Create `infra/terraform.tfvars` with your configuration, including your public IP and desired worker count:
@@ -107,7 +115,7 @@ Useful options:
 For example, to render frames 1–240:
 
 ```bash
-python scripts/render.py path/to/your/scene.blend \
+python scripts/render.py scenes/anim.blend \
   --start-frame 1 \
   --end-frame 240
 ```
